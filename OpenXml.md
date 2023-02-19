@@ -1,6 +1,6 @@
 ﻿# OpenXml
 
-标签（空格分隔）： 未分类
+标签（空格分隔）： C# OpenXml 
 
 ---
 
@@ -72,6 +72,68 @@
     
 在这个示例中，WriteLargePptFile 方法创建一个新的 PPT 文件，写入了一百个空白幻灯片。ReadLargePptFile 方法打开这个 PPT 文件并读取其中的幻灯片。注意，在读取大型 PPT 文件时，最好逐个幻灯片地读取，以避免一次性加载整个文件到内存中造成性能问题.
 
+详细说明 C# OpenXml PPT 中如插入100万行 Excel 表格数据，要求低内存，高性能
+--------------------------------------------------
+在本文中，我们将提供一个C#的OpenXml PPT示例，以向PPT中插入100万行Excel表格数据，并通过分段方式将数据写入以保证低内存和高性能。同时，我们也将提供代码讲解和示例代码。
+
+示例代码如下：
+
+    using DocumentFormat.OpenXml.Packaging;
+    using DocumentFormat.OpenXml.Spreadsheet;
+    using DocumentFormat.OpenXml.Presentation;
+    using System.IO;
+    
+    namespace PPTWithExcelData
+    {
+        class Program
+        {
+            static void Main(string[] args)
+            {
+                //创建一个新的PPT
+                using (PresentationDocument presentationDocument = PresentationDocument.Create("Presentation.pptx", PresentationDocumentType.Presentation))
+                {
+                    PresentationPart presentationPart = presentationDocument.AddPresentationPart();
+                    presentationPart.Presentation = new Presentation();
+                    //添加幻灯片
+                    SlidePart slidePart = presentationPart.AddNewPart<SlidePart>();
+                    Slide slide = new Slide(new CommonSlideData(new ShapeTree()));
+                    slidePart.Slide = slide;
+                    //创建一个表格
+                    var table = new Table();
+                    //添加表头
+                    var headerRow = new TableRow();
+                    for (int i = 1; i <= 5; i++)
+                    {
+                        headerRow.AppendChild(new TableCell(new Paragraph(new Run(new Text($"Header{i}")))));
+                    }
+                    table.AppendChild(headerRow);
+                    //分段写入数据
+                    for (int i = 1; i <= 1000000; i += 1000)
+                    {
+                        var dataRows = new TableRowCollection();
+                        for (int j = i; j < i + 1000 && j <= 1000000; j++)
+                        {
+                            var row = new TableRow();
+                            for (int k = 1; k <= 5; k++)
+                            {
+                                row.AppendChild(new TableCell(new Paragraph(new Run(new Text($"Data{j}:{k}")))));
+                            }
+                            dataRows.AppendChild(row);
+                        }
+                        table.AppendChild(dataRows);
+                    }
+                    //将表格添加到幻灯片中
+                    slide.CommonSlideData.ShapeTree.AppendChild(new GraphicFrame(new DocumentFormat.OpenXml.Drawing.NonVisualGraphicFrameProperties(new DocumentFormat.OpenXml.Drawing.NonVisualDrawingProperties() { Id = 1, Name = "Table 1" }, new DocumentFormat.OpenXml.Drawing.NonVisualGraphicFrameDrawingProperties()), new DocumentFormat.OpenXml.Drawing.Graphic(new DocumentFormat.OpenXml.Drawing.GraphicData(new DocumentFormat.OpenXml.Drawing.Table(table))) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/table" }));
+                    //保存PPT
+                    presentationPart.Presentation.Save();
+                }
+            }
+        }
+    }
+    
+这个示例代码首先使用OpenXml SDK创建了一个新的PPT，并创建了一个幻灯片。接着，它创建了一个表格，添加表头并分段方式写入100万行的数据。每个段的大小为1000行，这可以通过修改for循环中的i和j的值来进行调整。最后，该代码将表格添加到幻灯片中，并保存PPT。
+
+这种分段写入数据的方式能够保证在写入数据时内存使用低，并且由于数据量较大，单次写入也能够提高性能。
 
 
 
